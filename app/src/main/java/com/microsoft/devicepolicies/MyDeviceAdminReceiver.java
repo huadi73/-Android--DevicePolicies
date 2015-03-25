@@ -7,16 +7,18 @@ import android.content.Intent;
 /**
  * Created by huadi on 2015/3/22.
  */
-public class MyDeviceAdminReceiver extends DeviceAdminReceiver {
+public class MyDeviceAdminReceiver extends DeviceAdminReceiver
+{
 
     @Override
-    public void onEnabled(Context context, Intent intent) {
+    public void onEnabled(Context context, Intent intent)
+    {
     }
 
     @Override
-    public void onDisabled(Context context, Intent intent) {
+    public void onDisabled(Context context, Intent intent)
+    {
     }
-
 
 
 }

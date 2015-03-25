@@ -20,6 +20,6 @@
         android:id="@+id/toggle_device_admin"
         android:layout_centerVertical="true"
         android:layout_centerHorizontal="true"
-        android:checked="false"/>
+        android:checked="true"/>
 
 </RelativeLayout>
