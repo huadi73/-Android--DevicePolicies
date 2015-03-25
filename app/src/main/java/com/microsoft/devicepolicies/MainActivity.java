@@ -46,6 +46,7 @@ public class MainActivity extends ActionBarActivity
         {
             // Already is a device administrator, can do security operations now.
             //mDPM.setCameraDisabled(mDeviceAdminSample, true);
+            startService(new Intent(MainActivity.this, WifiDetectService.class));
         }
 
         btnCamera = (ToggleButton) findViewById(R.id.toggle_device_admin);

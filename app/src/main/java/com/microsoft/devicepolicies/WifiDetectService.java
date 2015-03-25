@@ -42,8 +42,8 @@ public class WifiDetectService extends Service
         Log.d(TAG, "onStartCommand");
 
         mDPM = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
-        //mDeviceAdminSample = new ComponentName(this, MyDeviceAdminReceiver.class);
-        mDeviceAdminSample = (ComponentName) intent.getParcelableExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN);
+        mDeviceAdminSample = new ComponentName(this, MyDeviceAdminReceiver.class);
+        //mDeviceAdminSample = (ComponentName) intent.getParcelableExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN);
         if (!mDPM.isAdminActive(mDeviceAdminSample))
         {
             // try to become active – must happen here in this activity, to get result
@@ -94,22 +94,22 @@ public class WifiDetectService extends Service
                 {
                     //WiFi is associated
                     WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-                    WifiInfo wi = wifiManager.getConnectionInfo();
-                    if (wi != null)
+                    WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+                    if (wifiInfo != null)
                     {
                         // Wifi info available (should be, we are associated)
-                        if (wi.getIpAddress() != 0)
+                        if (wifiInfo.getIpAddress() != 0)
                         {
-                            Log.d(TAG, "Already Connected " + wi.getSSID());
+                            Log.d(TAG, "Already Connected " + wifiInfo.getSSID());
                             // Lucky us, we already have an ip address.
                             // This happens when a connection is complete, e.g. after rekeying
-                            if (wi.getSSID().equals("2h2f"))
+                            if (wifiInfo.getSSID().equals("\"2h2f\""))
                             {
                                 SetCameraDisable(true);
                             }
                             else
                             {
-                                Log.d(TAG, "NOT eq wifi " + wi.getSSID());
+                                Log.d(TAG, "NOT eq wifi " + wifiInfo.getSSID());
                                 SetCameraDisable(false);
                             }
                         }
@@ -125,18 +125,21 @@ public class WifiDetectService extends Service
                                     public void onReceive(Context ctx, Intent in)
                                     {
                                         WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-                                        WifiInfo wi = wifiManager.getConnectionInfo();
-                                        if (wi != null)
+                                        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+                                        if (wifiInfo != null)
                                         {
-                                            if (wi.getIpAddress() != 0)
+                                            if (wifiInfo.getIpAddress() != 0)
                                             {
-                                                Log.d(TAG, "Now Connected " + wi.getSSID());
-                                                if (wi.getSSID().equals("2h2f"))
+                                                Log.d(TAG, "Now Connected " + wifiInfo.getSSID());
+                                                if (wifiInfo.getSSID().equals("\"2h2f\""))
                                                 {
                                                     SetCameraDisable(true);
                                                 }
                                                 else
+                                                {
+                                                    Log.d(TAG, "NOT eq wifi " + wifiInfo.getSSID());
                                                     SetCameraDisable(false);
+                                                }
                                             }
                                         }
                                         else
