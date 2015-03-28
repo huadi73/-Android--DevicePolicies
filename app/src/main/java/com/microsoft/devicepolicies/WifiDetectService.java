@@ -21,6 +21,9 @@ import android.util.Log;
 public class WifiDetectService extends Service
 {
     String TAG = "WifiDetectService";
+
+    String wifiName= "ms";
+
     DevicePolicyManager mDPM;
     ComponentName mDeviceAdminSample;
     BroadcastReceiver awaitIPAddress = null;
@@ -67,6 +70,8 @@ public class WifiDetectService extends Service
     {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
+
+        unregisterReceiver(receiver);
     }
 
     @Override
@@ -103,7 +108,7 @@ public class WifiDetectService extends Service
                             Log.d(TAG, "Already Connected " + wifiInfo.getSSID());
                             // Lucky us, we already have an ip address.
                             // This happens when a connection is complete, e.g. after rekeying
-                            if (wifiInfo.getSSID().equals("\"2h2f\""))
+                            if (wifiInfo.getSSID().equals("\"" + wifiName + "\""))
                             {
                                 SetCameraDisable(true);
                             }
@@ -131,7 +136,7 @@ public class WifiDetectService extends Service
                                             if (wifiInfo.getIpAddress() != 0)
                                             {
                                                 Log.d(TAG, "Now Connected " + wifiInfo.getSSID());
-                                                if (wifiInfo.getSSID().equals("\"2h2f\""))
+                                                if (wifiInfo.getSSID().equals("\"" + wifiName + "\""))
                                                 {
                                                     SetCameraDisable(true);
                                                 }

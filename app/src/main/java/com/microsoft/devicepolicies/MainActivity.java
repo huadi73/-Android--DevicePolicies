@@ -5,21 +5,25 @@ import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.CompoundButton;
-import android.widget.ToggleButton;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
 
 public class MainActivity extends ActionBarActivity
 {
     String TAG = "MainActivity";
     public int REQUEST_ENABLE = 1001;
-    ToggleButton btnCamera;
+    Button btnUninstall;
+    EditText txtPwd;
 
     private CheckBoxPreference mDisableCameraCheckbox;
     DevicePolicyManager mDPM;
@@ -49,34 +53,69 @@ public class MainActivity extends ActionBarActivity
             startService(new Intent(MainActivity.this, WifiDetectService.class));
         }
 
-        btnCamera = (ToggleButton) findViewById(R.id.toggle_device_admin);
-        btnCamera.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener()
+        txtPwd = (EditText)findViewById(R.id.txtPassword);
+
+        btnUninstall = (Button) findViewById(R.id.btnUninstall);
+        btnUninstall.setOnClickListener(new View.OnClickListener()
         {
             @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked)
+            public void onClick(View v)
             {
-                //mDPM.setCameraDisabled(mDeviceAdminSample, true);
-                if(!isChecked)
+                if(txtPwd.getText().toString().equals("1234"))
                 {
-                    Log.d(TAG, "Stop");
+                    Log.d(TAG, "uninstall");
                     mDPM.removeActiveAdmin(mDeviceAdminSample);
-                    Intent intent = new Intent(MainActivity.this, WifiDetectService.class);
-                    stopService(intent);
+                    stopService(new Intent(MainActivity.this, WifiDetectService.class));
+
+                    try
+                    {
+                        Thread.sleep(500);
+                    }
+                    catch (InterruptedException e)
+                    {
+                        e.printStackTrace();
+                    }
+
+                    //uninstall
+                    Intent intent = new Intent(Intent.ACTION_DELETE);
+                    intent.setData(Uri.parse("package:" + MainActivity.this.getPackageName()));
+                    startActivity(intent);
                 }
                 else
-                {
-                    Log.d(TAG, "Start");
-                    if (!mDPM.isAdminActive(mDeviceAdminSample))
-                    {
-                        // try to become active – must happen here in this activity, to get result
-                        Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
-                        intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, mDeviceAdminSample);
-                        intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "1234856");
-                        startActivityForResult(intent, REQUEST_ENABLE);
-                    }
-                }
+                    Toast.makeText(MainActivity.this, "Password Error", Toast.LENGTH_LONG).show();
             }
         });
+//                .setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener()
+//        {
+//            @Override
+//            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked)
+//            {
+//                //mDPM.setCameraDisabled(mDeviceAdminSample, true);
+//                if(!isChecked)
+//                {
+//                    Log.d(TAG, "Stop");
+//                    mDPM.removeActiveAdmin(mDeviceAdminSample);
+//                    stopService(new Intent(MainActivity.this, WifiDetectService.class));
+//
+//                    //uninstall
+//                    Intent intent = new Intent(Intent.ACTION_DELETE);
+//                    intent.setData(Uri.parse("package:" + MainActivity.this.getPackageName()));
+//                    startActivity(intent);
+//                }
+//                else
+//                {
+//                    Log.d(TAG, "Start");
+//                    if (!mDPM.isAdminActive(mDeviceAdminSample))
+//                    {
+//                        // try to become active – must happen here in this activity, to get result
+//                        Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
+//                        intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, mDeviceAdminSample);
+//                        intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "1234856");
+//                        startActivityForResult(intent, REQUEST_ENABLE);
+//                    }
+//                }
+//            }
+//        });
 
     }
 
