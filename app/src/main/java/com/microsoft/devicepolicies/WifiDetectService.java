@@ -8,31 +8,66 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.location.Location;
 import android.net.ConnectivityManager;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
+import android.widget.Toast;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.FusedLocationProviderApi;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by huadi on 2015/3/22.
  */
-public class WifiDetectService extends Service
+public class WifiDetectService extends Service implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener
 {
     String TAG = "WifiDetectService";
 
-    String wifiName= "ms";
+    String wifiName = "2h2f";
+    boolean isConnectCompanyWifi = false;
 
     DevicePolicyManager mDPM;
     ComponentName mDeviceAdminSample;
     BroadcastReceiver awaitIPAddress = null;
+
+    private GoogleApiClient mGoogleApiClient;
+    private boolean mResolvingError = false;
+
+    private FusedLocationProviderApi fusedLocationProviderApi = LocationServices.FusedLocationApi;
+    private LocationRequest locationRequest;
+    private Location mCurrentLocation;
+
 
     @Override
     public void onCreate()
     {
         super.onCreate();
         Log.d(TAG, "onCreate");
+
+        locationRequest = LocationRequest.create();
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        locationRequest.setInterval(10000);
+        locationRequest.setFastestInterval(5000);
+
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addApi(LocationServices.API)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build();
 
 //        IntentFilter filter = new IntentFilter();
 //        filter.addAction(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION);
@@ -43,6 +78,17 @@ public class WifiDetectService extends Service
     public int onStartCommand(Intent intent, int flags, int startId)
     {
         Log.d(TAG, "onStartCommand");
+
+        // Connect the client.
+        if (!mResolvingError)
+        {
+            Log.d(TAG, "GoogleApiClient Connect");
+            mGoogleApiClient.connect(); // Connect the client.
+        }
+        else
+        {
+            Log.d(TAG, "GoogleApiClient mResolvingError");
+        }
 
         mDPM = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
         mDeviceAdminSample = new ComponentName(this, MyDeviceAdminReceiver.class);
@@ -71,6 +117,7 @@ public class WifiDetectService extends Service
         super.onDestroy();
         Log.d(TAG, "onDestroy");
 
+        mGoogleApiClient.disconnect();
         unregisterReceiver(receiver);
     }
 
@@ -85,7 +132,10 @@ public class WifiDetectService extends Service
     {
         mDPM.setCameraDisabled(mDeviceAdminSample, isToDisable);
         Log.d(TAG, "Camera Disabled = " + isToDisable);
+
+        isConnectCompanyWifi = isToDisable;
     }
+
     private final BroadcastReceiver receiver = new BroadcastReceiver()
     {
         @Override
@@ -114,7 +164,7 @@ public class WifiDetectService extends Service
                             }
                             else
                             {
-                                Log.d(TAG, "NOT eq wifi " + wifiInfo.getSSID());
+                                Log.d(TAG, "NOT eq wifi " + wifiName + ", Current: " + wifiInfo.getSSID());
                                 SetCameraDisable(false);
                             }
                         }
@@ -179,4 +229,74 @@ public class WifiDetectService extends Service
     };
 
 
+    @Override
+    public void onConnected(Bundle bundle)
+    {
+        Log.d(TAG, "onConnected");
+        Location currentLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+        if (currentLocation != null && currentLocation.getTime() > 20000)
+        {
+            mCurrentLocation = currentLocation;
+            Log.d(TAG, String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()));
+
+
+
+            LatLngBounds.Builder builder = new LatLngBounds.Builder();
+            builder.include(new LatLng(25.043523, 121.577258));
+            builder.include(new LatLng(25.044802, 121.575536));
+            builder.include(new LatLng(25.043441, 121.574077));
+            builder.include(new LatLng(25.044171, 121.576506));
+            LatLngBounds bound = builder.build();
+
+            if (bound.contains(new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude())))
+            {
+                Log.d(TAG, "123, " + bound.getCenter());
+            }
+            else
+                Log.d(TAG, "456, " + bound.getCenter());
+
+
+        }
+        else
+        {
+            fusedLocationProviderApi.requestLocationUpdates(mGoogleApiClient, locationRequest, this);
+            // Schedule a Thread to unregister location listeners
+            Executors.newScheduledThreadPool(1).schedule(new Runnable() {
+                @Override
+                public void run() {
+                    fusedLocationProviderApi.removeLocationUpdates(mGoogleApiClient, WifiDetectService.this);
+                }
+            }, 60000, TimeUnit.MILLISECONDS);
+            Log.d(TAG, "requestLocationUpdates");
+        }
+    }
+
+    @Override
+    public void onConnectionSuspended(int i)
+    {
+        Log.d(TAG, "onConnectionSuspended");
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult)
+    {
+        Log.d(TAG, "onConnectionFailed");
+        if (mResolvingError) {
+            Log.d("","Already attempting to resolve an error");
+            return;
+        } else if (connectionResult.hasResolution()) {
+            Log.d(TAG, "connectionResult.hasResolution()");
+        } else {
+            mResolvingError = true;
+        }
+    }
+
+    @Override
+    public void onLocationChanged(Location location)
+    {
+        mCurrentLocation = location;
+        Toast.makeText(getApplicationContext(), String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()), Toast.LENGTH_SHORT).show();
+
+
+    }
 }

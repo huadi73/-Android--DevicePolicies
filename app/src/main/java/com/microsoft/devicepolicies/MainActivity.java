@@ -85,37 +85,6 @@ public class MainActivity extends ActionBarActivity
                     Toast.makeText(MainActivity.this, "Password Error", Toast.LENGTH_LONG).show();
             }
         });
-//                .setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener()
-//        {
-//            @Override
-//            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked)
-//            {
-//                //mDPM.setCameraDisabled(mDeviceAdminSample, true);
-//                if(!isChecked)
-//                {
-//                    Log.d(TAG, "Stop");
-//                    mDPM.removeActiveAdmin(mDeviceAdminSample);
-//                    stopService(new Intent(MainActivity.this, WifiDetectService.class));
-//
-//                    //uninstall
-//                    Intent intent = new Intent(Intent.ACTION_DELETE);
-//                    intent.setData(Uri.parse("package:" + MainActivity.this.getPackageName()));
-//                    startActivity(intent);
-//                }
-//                else
-//                {
-//                    Log.d(TAG, "Start");
-//                    if (!mDPM.isAdminActive(mDeviceAdminSample))
-//                    {
-//                        // try to become active – must happen here in this activity, to get result
-//                        Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
-//                        intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, mDeviceAdminSample);
-//                        intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "1234856");
-//                        startActivityForResult(intent, REQUEST_ENABLE);
-//                    }
-//                }
-//            }
-//        });
 
     }
 
@@ -166,4 +135,6 @@ public class MainActivity extends ActionBarActivity
 
         return super.onOptionsItemSelected(item);
     }
+
+
 }
