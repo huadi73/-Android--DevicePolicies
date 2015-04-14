@@ -5,6 +5,7 @@ import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
@@ -61,7 +62,8 @@ public class MainActivity extends ActionBarActivity
             @Override
             public void onClick(View v)
             {
-                if(txtPwd.getText().toString().equals("1234"))
+                SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
+                if(txtPwd.getText().toString().equals(sharedPreferences.getString("pwd", "")))
                 {
                     Log.d(TAG, "uninstall");
                     mDPM.removeActiveAdmin(mDeviceAdminSample);

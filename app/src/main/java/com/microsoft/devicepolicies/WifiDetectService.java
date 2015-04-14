@@ -8,6 +8,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.res.AssetManager;
 import android.location.Location;
 import android.net.ConnectivityManager;
 import android.net.wifi.SupplicantState;
@@ -16,7 +18,6 @@ import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -25,8 +26,17 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -37,7 +47,10 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
 {
     String TAG = "WifiDetectService";
 
-    String wifiName = "2h2f";
+    HashMap<LatLng, Float> companyLocations = new HashMap<LatLng, Float>();
+    List<String> companyWifiNames = new ArrayList<String>();
+
+    boolean isEntryCompanyLocation = false;
     boolean isConnectCompanyWifi = false;
 
     DevicePolicyManager mDPM;
@@ -68,16 +81,13 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();
-
-//        IntentFilter filter = new IntentFilter();
-//        filter.addAction(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION);
-//        registerReceiver(receiver, filter);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId)
     {
         Log.d(TAG, "onStartCommand");
+        InitSettings();
 
         // Connect the client.
         if (!mResolvingError)
@@ -132,8 +142,6 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
     {
         mDPM.setCameraDisabled(mDeviceAdminSample, isToDisable);
         Log.d(TAG, "Camera Disabled = " + isToDisable);
-
-        isConnectCompanyWifi = isToDisable;
     }
 
     private final BroadcastReceiver receiver = new BroadcastReceiver()
@@ -141,6 +149,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
         @Override
         public void onReceive(Context context, Intent intent)
         {
+            InitSettings();
             String action = intent.getAction();
 
             if (action.equals(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION))
@@ -150,28 +159,21 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                     //WiFi is associated
                     WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
                     WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-                    if (wifiInfo != null)
+                    if (wifiInfo != null) // Wifi info available (should be, we are associated)
                     {
-                        // Wifi info available (should be, we are associated)
-                        if (wifiInfo.getIpAddress() != 0)
+                        if (wifiInfo.getIpAddress() != 0) // Lucky, already have an ip address. happens when a connection is complete
                         {
                             Log.d(TAG, "Already Connected " + wifiInfo.getSSID());
-                            // Lucky us, we already have an ip address.
-                            // This happens when a connection is complete, e.g. after rekeying
-                            if (wifiInfo.getSSID().equals("\"" + wifiName + "\""))
-                            {
-                                SetCameraDisable(true);
-                            }
-                            else
-                            {
-                                Log.d(TAG, "NOT eq wifi " + wifiName + ", Current: " + wifiInfo.getSSID());
-                                SetCameraDisable(false);
-                            }
+                            for (String wifiName : companyWifiNames)
+                                if (wifiInfo.getSSID().equals("\"" + wifiName + "\""))
+                                {
+                                    isConnectCompanyWifi = true;
+                                }
+                            SetCameraDisable(isConnectCompanyWifi);
+                            Log.d(TAG, "isConnectCompanyWifi : " + isConnectCompanyWifi);
                         }
-                        else
+                        else // No ip address yet, need to wait...
                         {
-                            // No ip address yet, we need to wait...
-                            // Battery friendly method, using events
                             if (awaitIPAddress == null)
                             {
                                 awaitIPAddress = new BroadcastReceiver()
@@ -186,40 +188,38 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                                             if (wifiInfo.getIpAddress() != 0)
                                             {
                                                 Log.d(TAG, "Now Connected " + wifiInfo.getSSID());
-                                                if (wifiInfo.getSSID().equals("\"" + wifiName + "\""))
-                                                {
-                                                    SetCameraDisable(true);
-                                                }
-                                                else
-                                                {
-                                                    Log.d(TAG, "NOT eq wifi " + wifiInfo.getSSID());
-                                                    SetCameraDisable(false);
-                                                }
+                                                for (String wifiName : companyWifiNames)
+                                                    if (wifiInfo.getSSID().equals("\"" + wifiName + "\""))
+                                                    {
+                                                        isConnectCompanyWifi = true;
+                                                    }
+                                                SetCameraDisable(isConnectCompanyWifi);
+                                                Log.d(TAG, "isConnectCompanyWifi : " + isConnectCompanyWifi);
                                             }
                                         }
                                         else
                                         {
-                                            SetCameraDisable(false);
                                             Log.d(TAG, "NO WiFi");
+                                            SetCameraDisable(false);
+
                                             ctx.unregisterReceiver(this);
                                             awaitIPAddress = null;
                                         }
                                     }
                                 };
-                                // We register a new receiver for connectivity events
-                                // (getting a new IP address for example)
+                                // register a new receiver for connectivity events(getting a new IP address)
                                 context.registerReceiver(awaitIPAddress, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
                             }
                         }
                     }
                 }
-                else
+                else // wifi connection not complete, release ip address receiver if registered
                 {
-                    // wifi connection not complete, release ip address receiver if registered
                     if (awaitIPAddress != null)
                     {
-                        SetCameraDisable(false);
                         Log.d(TAG, "wifi connection not complete");
+                        SetCameraDisable(false);
+
                         context.unregisterReceiver(awaitIPAddress);
                         awaitIPAddress = null;
                     }
@@ -239,31 +239,32 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
             mCurrentLocation = currentLocation;
             Log.d(TAG, String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()));
 
+            InitSettings();
+//            Log.d(TAG, companyWifiNames.get(0));
 
-
-            LatLngBounds.Builder builder = new LatLngBounds.Builder();
-            builder.include(new LatLng(25.043523, 121.577258));
-            builder.include(new LatLng(25.044802, 121.575536));
-            builder.include(new LatLng(25.043441, 121.574077));
-            builder.include(new LatLng(25.044171, 121.576506));
-            LatLngBounds bound = builder.build();
-
-            if (bound.contains(new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude())))
-            {
-                Log.d(TAG, "123, " + bound.getCenter());
-            }
-            else
-                Log.d(TAG, "456, " + bound.getCenter());
-
-
+//            LatLngBounds.Builder builder = new LatLngBounds.Builder();
+//            builder.include(new LatLng(25.043523, 121.577258));
+//            builder.include(new LatLng(25.044802, 121.575536));
+//            builder.include(new LatLng(25.043441, 121.574077));
+//            builder.include(new LatLng(25.044171, 121.576506));
+//            LatLngBounds bound = builder.build();
+//
+//            if (bound.contains(new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude())))
+//            {
+//                Log.d(TAG, "123, " + bound.getCenter());
+//            }
+//            else
+//                Log.d(TAG, "456, " + bound.getCenter());
         }
         else
         {
             fusedLocationProviderApi.requestLocationUpdates(mGoogleApiClient, locationRequest, this);
             // Schedule a Thread to unregister location listeners
-            Executors.newScheduledThreadPool(1).schedule(new Runnable() {
+            Executors.newScheduledThreadPool(1).schedule(new Runnable()
+            {
                 @Override
-                public void run() {
+                public void run()
+                {
                     fusedLocationProviderApi.removeLocationUpdates(mGoogleApiClient, WifiDetectService.this);
                 }
             }, 60000, TimeUnit.MILLISECONDS);
@@ -281,12 +282,17 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
     public void onConnectionFailed(ConnectionResult connectionResult)
     {
         Log.d(TAG, "onConnectionFailed");
-        if (mResolvingError) {
-            Log.d("","Already attempting to resolve an error");
+        if (mResolvingError)
+        {
+            Log.d("", "Already attempting to resolve an error");
             return;
-        } else if (connectionResult.hasResolution()) {
+        }
+        else if (connectionResult.hasResolution())
+        {
             Log.d(TAG, "connectionResult.hasResolution()");
-        } else {
+        }
+        else
+        {
             mResolvingError = true;
         }
     }
@@ -295,8 +301,87 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
     public void onLocationChanged(Location location)
     {
         mCurrentLocation = location;
-        Toast.makeText(getApplicationContext(), String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()), Toast.LENGTH_SHORT).show();
+        //Toast.makeText(getApplicationContext(), String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()), Toast.LENGTH_SHORT).show();
+        Log.d(TAG, "Location Changed" + String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()));
 
+        InitSettings();
+
+        if(!isConnectCompanyWifi)
+        {
+            for (LatLng latlng : companyLocations.keySet())
+            {
+                float[] results = new float[1];
+                Location.distanceBetween(latlng.latitude, latlng.longitude, mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude(), results);
+
+                if (results[0] <= companyLocations.get(latlng))
+                    isEntryCompanyLocation = true;
+            }
+            SetCameraDisable(isEntryCompanyLocation);
+        }
 
     }
+
+    void InitSettings()
+    {
+        isEntryCompanyLocation = false;
+        isConnectCompanyWifi = false;
+
+        AssetManager assetManager = getAssets();
+        InputStream inputStream = null;
+
+        String myStream;
+        try
+        {
+            // 指定/assets/MyAssets.txt
+            inputStream = assetManager.open("Settings.txt");
+
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            byte[] bytes = new byte[4096];
+
+            int len;
+            while ((len = inputStream.read(bytes)) > 0)
+            {
+                byteArrayOutputStream.write(bytes, 0, len);
+            }
+            myStream = new String(byteArrayOutputStream.toByteArray(), "UTF8");
+        }
+        catch (IOException e)
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            myStream = e.toString();
+        }
+
+        //Log.d(TAG, myStream);
+
+        try
+        {
+            JSONObject settings = new JSONObject(myStream).getJSONObject("Settings");
+            JSONArray location = settings.getJSONArray("Location");
+            JSONArray wifi = settings.getJSONArray("Wifi");
+            String password = settings.getString("Password");
+
+            for (int i = 0; i < location.length(); i++)
+            {
+                String lat = location.getJSONObject(i).getString("Latitude");
+                String lng = location.getJSONObject(i).getString("Longitude");
+                String distance = location.getJSONObject(i).getString("Distance");
+
+                companyLocations.put(new LatLng(Double.parseDouble(lat), Double.parseDouble(lng)), Float.parseFloat(distance));
+            }
+
+            for (int i = 0; i < wifi.length(); i++)
+                companyWifiNames.add(wifi.getJSONObject(i).getString("SSID"));
+
+            SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
+            sharedPreferences.edit().putString("pwd",password).commit();
+        }
+        catch (JSONException e)
+        {
+            e.printStackTrace();
+        }
+
+    }
+
+
 }

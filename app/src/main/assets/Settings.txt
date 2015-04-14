@@ -1,0 +1,25 @@
+{
+    "Settings": {
+        "Location": [
+            {
+                "Latitude": "25.038210",
+                "Longitude": "121.569133",
+                "Distance": "100"
+            },
+            {
+                "Latitude": "25.040728",
+                "Longitude": "121.568962",
+                "Distance": "50"
+            }
+        ],
+        "Wifi": [
+            {
+                "SSID": "ms"
+            },
+            {
+                "SSID": "microsoft"
+            }
+        ],
+        "Password" : "a1234"
+    }
+}
