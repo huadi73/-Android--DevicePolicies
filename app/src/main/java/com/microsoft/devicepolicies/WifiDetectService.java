@@ -37,8 +37,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by huadi on 2015/3/22.
@@ -61,7 +59,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
     private boolean mResolvingError = false;
 
     private FusedLocationProviderApi fusedLocationProviderApi = LocationServices.FusedLocationApi;
-    private LocationRequest locationRequest;
+    private LocationRequest mLocationRequest;
     private Location mCurrentLocation;
 
 
@@ -71,10 +69,10 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
         super.onCreate();
         Log.d(TAG, "onCreate");
 
-        locationRequest = LocationRequest.create();
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(10000);
-        locationRequest.setFastestInterval(5000);
+        mLocationRequest = LocationRequest.create();
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        mLocationRequest.setInterval(10000);
+        mLocationRequest.setFastestInterval(5000);
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
@@ -164,7 +162,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                         {
                             Log.d(TAG, "Already Connected " + wifiInfo.getSSID());
 
-                            if(!isEntryCompanyLocation)
+                            if (!isEntryCompanyLocation)
                             {
                                 InitSettings();
                                 isConnectCompanyWifi = false;
@@ -195,7 +193,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                                                 Log.d(TAG, "Now Connected " + wifiInfo.getSSID());
                                                 InitSettings();
                                                 isConnectCompanyWifi = false;
-                                                if(!isEntryCompanyLocation)
+                                                if (!isEntryCompanyLocation)
                                                 {
                                                     for (String wifiName : companyWifiNames)
                                                         if (wifiInfo.getSSID().equals("\"" + wifiName + "\""))
@@ -244,14 +242,14 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
     {
         Log.d(TAG, "onConnected");
         Location currentLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        if (currentLocation != null && currentLocation.getTime() > 20000)
+        if (currentLocation != null)
         {
             mCurrentLocation = currentLocation;
             Log.d(TAG, String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()));
 
             InitSettings();
             isEntryCompanyLocation = false;
-            if(!isConnectCompanyWifi)
+            if (!isConnectCompanyWifi)
             {
                 for (LatLng latlng : companyLocations.keySet())
                 {
@@ -264,35 +262,13 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                 SetCameraDisable(isEntryCompanyLocation);
             }
 //            Log.d(TAG, companyWifiNames.get(0));
+        }
+        startLocationUpdates();
+    }
 
-//            LatLngBounds.Builder builder = new LatLngBounds.Builder();
-//            builder.include(new LatLng(25.043523, 121.577258));
-//            builder.include(new LatLng(25.044802, 121.575536));
-//            builder.include(new LatLng(25.043441, 121.574077));
-//            builder.include(new LatLng(25.044171, 121.576506));
-//            LatLngBounds bound = builder.build();
-//
-//            if (bound.contains(new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude())))
-//            {
-//                Log.d(TAG, "123, " + bound.getCenter());
-//            }
-//            else
-//                Log.d(TAG, "456, " + bound.getCenter());
-        }
-        else
-        {
-            fusedLocationProviderApi.requestLocationUpdates(mGoogleApiClient, locationRequest, this);
-            // Schedule a Thread to unregister location listeners
-            Executors.newScheduledThreadPool(1).schedule(new Runnable()
-            {
-                @Override
-                public void run()
-                {
-                    fusedLocationProviderApi.removeLocationUpdates(mGoogleApiClient, WifiDetectService.this);
-                }
-            }, 60000, TimeUnit.MILLISECONDS);
-            Log.d(TAG, "requestLocationUpdates");
-        }
+    protected void startLocationUpdates()
+    {
+        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
     }
 
     @Override
@@ -307,8 +283,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
         Log.d(TAG, "onConnectionFailed");
         if (mResolvingError)
         {
-            Log.d("", "Already attempting to resolve an error");
-            return;
+            Log.d(TAG, "Already attempting to resolve an error");
         }
         else if (connectionResult.hasResolution())
         {
@@ -327,7 +302,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
         //Toast.makeText(getApplicationContext(), String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()), Toast.LENGTH_SHORT).show();
         Log.d(TAG, "Location Changed" + String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()));
 
-        if(!isConnectCompanyWifi)
+        if (!isConnectCompanyWifi)
         {
             InitSettings();
             isEntryCompanyLocation = false;
@@ -394,7 +369,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                 companyWifiNames.add(wifi.getJSONObject(i).getString("SSID"));
 
             SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
-            sharedPreferences.edit().putString("pwd",password).commit();
+            sharedPreferences.edit().putString("pwd", password).commit();
         }
         catch (JSONException e)
         {

@@ -4,12 +4,7 @@
             {
                 "Latitude": "25.038210",
                 "Longitude": "121.569133",
-                "Distance": "1000"
-            },
-            {
-                "Latitude": "25.040728",
-                "Longitude": "121.568962",
-                "Distance": "500"
+                "Distance": "100"
             },
             {
                 "Latitude": "24.173255",
