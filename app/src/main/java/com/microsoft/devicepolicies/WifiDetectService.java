@@ -149,7 +149,6 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
         @Override
         public void onReceive(Context context, Intent intent)
         {
-            InitSettings();
             String action = intent.getAction();
 
             if (action.equals(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION))
@@ -164,13 +163,19 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                         if (wifiInfo.getIpAddress() != 0) // Lucky, already have an ip address. happens when a connection is complete
                         {
                             Log.d(TAG, "Already Connected " + wifiInfo.getSSID());
-                            for (String wifiName : companyWifiNames)
-                                if (wifiInfo.getSSID().equals("\"" + wifiName + "\""))
-                                {
-                                    isConnectCompanyWifi = true;
-                                }
-                            SetCameraDisable(isConnectCompanyWifi);
-                            Log.d(TAG, "isConnectCompanyWifi : " + isConnectCompanyWifi);
+
+                            if(!isEntryCompanyLocation)
+                            {
+                                InitSettings();
+                                isConnectCompanyWifi = false;
+                                for (String wifiName : companyWifiNames)
+                                    if (wifiInfo.getSSID().equals("\"" + wifiName + "\""))
+                                    {
+                                        isConnectCompanyWifi = true;
+                                    }
+                                SetCameraDisable(isConnectCompanyWifi);
+                                Log.d(TAG, "isConnectCompanyWifi : " + isConnectCompanyWifi);
+                            }
                         }
                         else // No ip address yet, need to wait...
                         {
@@ -188,19 +193,24 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                                             if (wifiInfo.getIpAddress() != 0)
                                             {
                                                 Log.d(TAG, "Now Connected " + wifiInfo.getSSID());
-                                                for (String wifiName : companyWifiNames)
-                                                    if (wifiInfo.getSSID().equals("\"" + wifiName + "\""))
-                                                    {
-                                                        isConnectCompanyWifi = true;
-                                                    }
-                                                SetCameraDisable(isConnectCompanyWifi);
+                                                InitSettings();
+                                                isConnectCompanyWifi = false;
+                                                if(!isEntryCompanyLocation)
+                                                {
+                                                    for (String wifiName : companyWifiNames)
+                                                        if (wifiInfo.getSSID().equals("\"" + wifiName + "\""))
+                                                        {
+                                                            isConnectCompanyWifi = true;
+                                                        }
+                                                    SetCameraDisable(isConnectCompanyWifi);
+                                                }
                                                 Log.d(TAG, "isConnectCompanyWifi : " + isConnectCompanyWifi);
                                             }
                                         }
                                         else
                                         {
                                             Log.d(TAG, "NO WiFi");
-                                            SetCameraDisable(false);
+                                            SetCameraDisable(true);
 
                                             ctx.unregisterReceiver(this);
                                             awaitIPAddress = null;
@@ -218,7 +228,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                     if (awaitIPAddress != null)
                     {
                         Log.d(TAG, "wifi connection not complete");
-                        SetCameraDisable(false);
+                        SetCameraDisable(true);
 
                         context.unregisterReceiver(awaitIPAddress);
                         awaitIPAddress = null;
@@ -240,6 +250,19 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
             Log.d(TAG, String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()));
 
             InitSettings();
+            isEntryCompanyLocation = false;
+            if(!isConnectCompanyWifi)
+            {
+                for (LatLng latlng : companyLocations.keySet())
+                {
+                    float[] results = new float[1];
+                    Location.distanceBetween(latlng.latitude, latlng.longitude, mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude(), results);
+
+                    if (results[0] <= companyLocations.get(latlng))
+                        isEntryCompanyLocation = true;
+                }
+                SetCameraDisable(isEntryCompanyLocation);
+            }
 //            Log.d(TAG, companyWifiNames.get(0));
 
 //            LatLngBounds.Builder builder = new LatLngBounds.Builder();
@@ -304,10 +327,10 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
         //Toast.makeText(getApplicationContext(), String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()), Toast.LENGTH_SHORT).show();
         Log.d(TAG, "Location Changed" + String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()));
 
-        InitSettings();
-
         if(!isConnectCompanyWifi)
         {
+            InitSettings();
+            isEntryCompanyLocation = false;
             for (LatLng latlng : companyLocations.keySet())
             {
                 float[] results = new float[1];
@@ -323,9 +346,6 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
 
     void InitSettings()
     {
-        isEntryCompanyLocation = false;
-        isConnectCompanyWifi = false;
-
         AssetManager assetManager = getAssets();
         InputStream inputStream = null;
 

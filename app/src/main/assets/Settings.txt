@@ -4,12 +4,27 @@
             {
                 "Latitude": "25.038210",
                 "Longitude": "121.569133",
-                "Distance": "100"
+                "Distance": "1000"
             },
             {
                 "Latitude": "25.040728",
                 "Longitude": "121.568962",
-                "Distance": "50"
+                "Distance": "500"
+            },
+            {
+                "Latitude": "24.173255",
+                "Longitude": "120.608419",
+                "Distance": "1000"
+            },
+            {
+                "Latitude": "24.144223",
+                "Longitude": "120.601192",
+                "Distance": "1000"
+            },
+            {
+                 "Latitude": "24.167327",
+                 "Longitude": "120.587901",
+                 "Distance": "1000"
             }
         ],
         "Wifi": [
