@@ -1,15 +1,19 @@
 package com.microsoft.devicepolicies;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
+import android.provider.Settings;
 import android.support.v7.app.ActionBarActivity;
+import android.text.InputType;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -23,6 +27,8 @@ public class MainActivity extends ActionBarActivity
 {
     String TAG = "MainActivity";
     public int REQUEST_ENABLE = 1001;
+
+    Button btnOpenGPS;
     Button btnUninstall;
     EditText txtPwd;
 
@@ -54,37 +60,47 @@ public class MainActivity extends ActionBarActivity
             startService(new Intent(MainActivity.this, WifiDetectService.class));
         }
 
-        txtPwd = (EditText)findViewById(R.id.txtPassword);
+//        txtPwd = (EditText) findViewById(R.id.txtPassword);
+//
+//        btnUninstall = (Button) findViewById(R.id.btnUninstall);
+//        btnUninstall.setOnClickListener(new View.OnClickListener()
+//        {
+//            @Override
+//            public void onClick(View v)
+//            {
+//                SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
+//                if (txtPwd.getText().toString().equals(sharedPreferences.getString("pwd", "")))
+//                {
+//                    Log.d(TAG, "uninstall");
+//                    mDPM.removeActiveAdmin(mDeviceAdminSample);
+//                    stopService(new Intent(MainActivity.this, WifiDetectService.class));
+//
+//                    try
+//                    {
+//                        Thread.sleep(500);
+//                    }
+//                    catch (InterruptedException e)
+//                    {
+//                        e.printStackTrace();
+//                    }
+//
+//                    //uninstall
+//                    Intent intent = new Intent(Intent.ACTION_DELETE);
+//                    intent.setData(Uri.parse("package:" + MainActivity.this.getPackageName()));
+//                    startActivity(intent);
+//                }
+//                else
+//                    Toast.makeText(MainActivity.this, "Password Error", Toast.LENGTH_LONG).show();
+//            }
+//        });
 
-        btnUninstall = (Button) findViewById(R.id.btnUninstall);
-        btnUninstall.setOnClickListener(new View.OnClickListener()
+        btnOpenGPS = (Button) findViewById(R.id.btnOpenGPS);
+        btnOpenGPS.setOnClickListener(new View.OnClickListener()
         {
             @Override
             public void onClick(View v)
             {
-                SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
-                if(txtPwd.getText().toString().equals(sharedPreferences.getString("pwd", "")))
-                {
-                    Log.d(TAG, "uninstall");
-                    mDPM.removeActiveAdmin(mDeviceAdminSample);
-                    stopService(new Intent(MainActivity.this, WifiDetectService.class));
-
-                    try
-                    {
-                        Thread.sleep(500);
-                    }
-                    catch (InterruptedException e)
-                    {
-                        e.printStackTrace();
-                    }
-
-                    //uninstall
-                    Intent intent = new Intent(Intent.ACTION_DELETE);
-                    intent.setData(Uri.parse("package:" + MainActivity.this.getPackageName()));
-                    startActivity(intent);
-                }
-                else
-                    Toast.makeText(MainActivity.this, "Password Error", Toast.LENGTH_LONG).show();
+                startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
             }
         });
 
@@ -132,7 +148,44 @@ public class MainActivity extends ActionBarActivity
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings)
         {
-            return true;
+            final EditText input = new EditText(this);
+            input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            new AlertDialog.Builder(this)
+                    .setTitle("請輸入密碼以解除安裝")
+                    .setIcon(android.R.drawable.ic_dialog_info)
+                    .setView(input)
+                    .setPositiveButton("確定", new DialogInterface.OnClickListener()
+                    {
+                        @Override
+                        public void onClick(DialogInterface dialog, int id)
+                        {
+                            SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
+                            if (input.getText().toString().equals(sharedPreferences.getString("pwd", "")))
+                            {
+                                Log.d(TAG, "uninstall");
+                                mDPM.removeActiveAdmin(mDeviceAdminSample);
+                                stopService(new Intent(MainActivity.this, WifiDetectService.class));
+
+                                try
+                                {
+                                    Thread.sleep(500);
+                                }
+                                catch (InterruptedException e)
+                                {
+                                    e.printStackTrace();
+                                }
+
+                                //uninstall
+                                Intent intent = new Intent(Intent.ACTION_DELETE);
+                                intent.setData(Uri.parse("package:" + MainActivity.this.getPackageName()));
+                                startActivity(intent);
+                            }
+                            else
+                                Toast.makeText(MainActivity.this, "Password Error", Toast.LENGTH_LONG).show();
+                        }
+                    })
+                    .setNegativeButton("取消", null).show();
+            //return true;
         }
 
         return super.onOptionsItemSelected(item);

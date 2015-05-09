@@ -114,6 +114,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
             IntentFilter filter = new IntentFilter();
             filter.addAction(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION);
             registerReceiver(receiver, filter);
+            SetCameraDisable(true);
         }
 
         return super.onStartCommand(intent, flags, startId);

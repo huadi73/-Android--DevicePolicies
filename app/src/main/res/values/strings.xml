@@ -2,7 +2,7 @@
     <string name="app_name">DevicePolicies</string>
 
     <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
+    <string name="action_settings">Uninstall</string>
     <string name="device_admin_enabled">Settings</string>
     <string name="device_admin_disabled">Settings</string>
 </resources>
