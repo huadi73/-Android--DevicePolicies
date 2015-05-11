@@ -11,11 +11,13 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.location.Location;
+import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -62,6 +64,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
     private LocationRequest mLocationRequest;
     private Location mCurrentLocation;
 
+    Handler gpsOnOffStatusHandler;
 
     @Override
     public void onCreate()
@@ -79,6 +82,20 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();
+
+        gpsOnOffStatusHandler = new Handler();
+        Runnable r = new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+                if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER))
+                    SetCameraDisable(true);
+                gpsOnOffStatusHandler.postDelayed(this, 1000);
+            }
+        };
+        gpsOnOffStatusHandler.postDelayed(r, 1000);
     }
 
     @Override
