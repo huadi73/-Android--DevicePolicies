@@ -1,6 +1,7 @@
 package com.microsoft.devicepolicies;
 
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
@@ -8,8 +9,10 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.preference.CheckBoxPreference;
 import android.provider.Settings;
 import android.support.v7.app.ActionBarActivity;
@@ -26,7 +29,8 @@ import android.widget.Toast;
 public class MainActivity extends ActionBarActivity
 {
     String TAG = "MainActivity";
-    public int REQUEST_ENABLE = 1001;
+    public static final int REQUEST_ENABLE = 1001;
+    public static final int REQUEST_GPS = 1002;
 
     Button btnOpenGPS;
     Button btnUninstall;
@@ -56,43 +60,10 @@ public class MainActivity extends ActionBarActivity
         else
         {
             // Already is a device administrator, can do security operations now.
-            //mDPM.setCameraDisabled(mDeviceAdminSample, true);
-            startService(new Intent(MainActivity.this, WifiDetectService.class));
+            mDPM.setCameraDisabled(mDeviceAdminSample, true);
+//            startService(new Intent(MainActivity.this, WifiDetectService.class));
         }
 
-//        txtPwd = (EditText) findViewById(R.id.txtPassword);
-//
-//        btnUninstall = (Button) findViewById(R.id.btnUninstall);
-//        btnUninstall.setOnClickListener(new View.OnClickListener()
-//        {
-//            @Override
-//            public void onClick(View v)
-//            {
-//                SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
-//                if (txtPwd.getText().toString().equals(sharedPreferences.getString("pwd", "")))
-//                {
-//                    Log.d(TAG, "uninstall");
-//                    mDPM.removeActiveAdmin(mDeviceAdminSample);
-//                    stopService(new Intent(MainActivity.this, WifiDetectService.class));
-//
-//                    try
-//                    {
-//                        Thread.sleep(500);
-//                    }
-//                    catch (InterruptedException e)
-//                    {
-//                        e.printStackTrace();
-//                    }
-//
-//                    //uninstall
-//                    Intent intent = new Intent(Intent.ACTION_DELETE);
-//                    intent.setData(Uri.parse("package:" + MainActivity.this.getPackageName()));
-//                    startActivity(intent);
-//                }
-//                else
-//                    Toast.makeText(MainActivity.this, "Password Error", Toast.LENGTH_LONG).show();
-//            }
-//        });
 
         btnOpenGPS = (Button) findViewById(R.id.btnOpenGPS);
         btnOpenGPS.setOnClickListener(new View.OnClickListener()
@@ -100,7 +71,31 @@ public class MainActivity extends ActionBarActivity
             @Override
             public void onClick(View v)
             {
-                startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+                if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) //current GPS status disable
+                {
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("開啟裝置定位選項")
+                            .setMessage("開啟相機需要開啟裝置GPS")
+                            .setPositiveButton("確定", new DialogInterface.OnClickListener()
+                            {
+                                @Override
+                                public void onClick(DialogInterface dialog, int id)
+                                {
+                                    startActivityForResult(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS), REQUEST_GPS);
+                                }
+                            })
+                            .setNegativeButton("取消", null).show();
+                }
+                else if (!isMyServiceRunning(WifiDetectService.class))
+                {
+                    Intent intent = new Intent(MainActivity.this, WifiDetectService.class);
+                    intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, mDeviceAdminSample);
+                    startService(intent);
+                }
+                else
+                    Log.d(TAG, "service is running");
+
             }
         });
 
@@ -111,22 +106,33 @@ public class MainActivity extends ActionBarActivity
     {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (REQUEST_ENABLE == requestCode)
+        switch (requestCode)
         {
-            if (resultCode == Activity.RESULT_OK)
-            {
-                Log.d(TAG, "Activity.RESULT_OK");
-                // Has become the device administrator.
-                //mDPM.setCameraDisabled(mDeviceAdminSample, true);
-                Intent intent = new Intent(MainActivity.this, WifiDetectService.class);
-                intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, mDeviceAdminSample);
-                startService(intent);
-            }
-            else
-            {
-                //Canceled or failed.
-            }
+            case REQUEST_ENABLE:
+                if (resultCode == Activity.RESULT_OK)
+                {
+                    Log.d(TAG, "Activity.RESULT_OK");
+                    // Has become the device administrator.
+                    mDPM.setCameraDisabled(mDeviceAdminSample, true);
+//                    Intent intent = new Intent(MainActivity.this, WifiDetectService.class);
+//                    intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, mDeviceAdminSample);
+//                    startService(intent);
+                }
+                else
+                {
+                    //Canceled or failed.
+                    Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
+                    intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, mDeviceAdminSample);
+                    intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "1234856");
+                    startActivityForResult(intent, REQUEST_ENABLE);
+                }
+                break;
+
+            case REQUEST_GPS:
+                //press < will back to Activity
+                break;
         }
+
     }
 
     @Override
@@ -166,19 +172,22 @@ public class MainActivity extends ActionBarActivity
                                 mDPM.removeActiveAdmin(mDeviceAdminSample);
                                 stopService(new Intent(MainActivity.this, WifiDetectService.class));
 
-                                try
+                                new CountDownTimer(500, 100)
                                 {
-                                    Thread.sleep(500);
-                                }
-                                catch (InterruptedException e)
-                                {
-                                    e.printStackTrace();
-                                }
+                                    public void onTick(long millisUntilFinished)
+                                    {
+                                        //wait for service stop
+                                    }
 
-                                //uninstall
-                                Intent intent = new Intent(Intent.ACTION_DELETE);
-                                intent.setData(Uri.parse("package:" + MainActivity.this.getPackageName()));
-                                startActivity(intent);
+                                    public void onFinish()
+                                    {
+                                        //uninstall
+                                        Intent intent = new Intent(Intent.ACTION_DELETE);
+                                        intent.setData(Uri.parse("package:" + MainActivity.this.getPackageName()));
+                                        startActivity(intent);
+                                    }
+                                }.start();
+
                             }
                             else
                                 Toast.makeText(MainActivity.this, "Password Error", Toast.LENGTH_LONG).show();
@@ -192,4 +201,16 @@ public class MainActivity extends ActionBarActivity
     }
 
 
+    private boolean isMyServiceRunning(Class<?> serviceClass)
+    {
+        ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE))
+        {
+            if (serviceClass.getName().equals(service.service.getClassName()))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 }

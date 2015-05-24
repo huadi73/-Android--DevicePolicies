@@ -12,8 +12,8 @@ public class BootCompletedIntentReceiver extends BroadcastReceiver
     @Override
     public void onReceive(Context context, Intent intent) {
         if ("android.intent.action.BOOT_COMPLETED".equals(intent.getAction())) {
-            Intent pushIntent = new Intent(context, WifiDetectService.class);
-            context.startService(pushIntent);
+//            Intent pushIntent = new Intent(context, WifiDetectService.class);
+//            context.startService(pushIntent);
         }
     }
 }

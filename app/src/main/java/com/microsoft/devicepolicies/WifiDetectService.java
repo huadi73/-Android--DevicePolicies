@@ -17,9 +17,11 @@ import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -52,6 +54,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
 
     boolean isEntryCompanyLocation = false;
     boolean isConnectCompanyWifi = false;
+    boolean cameraCurrentStatus = true;
 
     DevicePolicyManager mDPM;
     ComponentName mDeviceAdminSample;
@@ -83,25 +86,27 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                 .addOnConnectionFailedListener(this)
                 .build();
 
-        gpsOnOffStatusHandler = new Handler();
-        Runnable r = new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-                if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER))
-                    SetCameraDisable(true);
-                gpsOnOffStatusHandler.postDelayed(this, 1000);
-            }
-        };
-        gpsOnOffStatusHandler.postDelayed(r, 1000);
+//        gpsOnOffStatusHandler = new Handler();
+//        Runnable r = new Runnable()
+//        {
+//            @Override
+//            public void run()
+//            {
+//                //check device gps enable or not
+//                LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+//                if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER))
+//                    SetCameraDisable(true);
+//                gpsOnOffStatusHandler.postDelayed(this, 1000);
+//            }
+//        };
+//        gpsOnOffStatusHandler.postDelayed(r, 1000);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId)
     {
         Log.d(TAG, "onStartCommand");
+
         InitSettings();
 
         // Connect the client.
@@ -116,23 +121,39 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
         }
 
         mDPM = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
-        mDeviceAdminSample = new ComponentName(this, MyDeviceAdminReceiver.class);
+        mDeviceAdminSample = new ComponentName(WifiDetectService.this, MyDeviceAdminReceiver.class);
         //mDeviceAdminSample = (ComponentName) intent.getParcelableExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN);
         if (!mDPM.isAdminActive(mDeviceAdminSample))
         {
             // try to become active – must happen here in this activity, to get result
-            Log.d(TAG, "NO AdminActive");
+            Log.d(TAG, "NO Admin Active");
         }
         else
         {
             // Already is a device administrator, can do security operations now.
-            Log.d(TAG, "AdminActive");
-//            mDPM.setCameraDisabled(mDeviceAdminSample, true);
+            Log.d(TAG, "Admin Active");
             IntentFilter filter = new IntentFilter();
             filter.addAction(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION);
             registerReceiver(receiver, filter);
             SetCameraDisable(true);
         }
+
+        new CountDownTimer(60 * 1000, 1000)
+        {
+            public void onTick(long millisUntilFinished)
+            {
+                LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+                if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER))
+                    SetCameraDisable(true);
+            }
+
+            public void onFinish()
+            {
+                Log.d(TAG, "Timer finish");
+                WifiDetectService.this.stopSelf();
+            }
+        }.start();
+
 
         return super.onStartCommand(intent, flags, startId);
     }
@@ -143,8 +164,16 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
         super.onDestroy();
         Log.d(TAG, "onDestroy");
 
+        SetCameraDisable(true);
         mGoogleApiClient.disconnect();
         unregisterReceiver(receiver);
+
+        //if camera is running, the admin policy cannot stop camera.
+        //So, min apps (just like click Home button) that policy will stop camera run
+        Intent startMain = new Intent(Intent.ACTION_MAIN);
+        startMain.addCategory(Intent.CATEGORY_HOME);
+        startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(startMain);
     }
 
     @Override
@@ -157,6 +186,13 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
     private void SetCameraDisable(boolean isToDisable)
     {
         mDPM.setCameraDisabled(mDeviceAdminSample, isToDisable);
+
+        if(!isToDisable && (cameraCurrentStatus != isToDisable))
+            Toast.makeText(WifiDetectService.this, "已可以開啟相機", Toast.LENGTH_LONG).show();
+        else if(isToDisable && (cameraCurrentStatus != isToDisable))
+            Toast.makeText(WifiDetectService.this, "相機功能已關閉", Toast.LENGTH_LONG).show();
+
+        cameraCurrentStatus = isToDisable;
         Log.d(TAG, "Camera Disabled = " + isToDisable);
     }
 
@@ -287,6 +323,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
     protected void startLocationUpdates()
     {
         LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+//        LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
     }
 
     @Override
@@ -360,7 +397,6 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
         }
         catch (IOException e)
         {
-            // TODO Auto-generated catch block
             e.printStackTrace();
             myStream = e.toString();
         }
