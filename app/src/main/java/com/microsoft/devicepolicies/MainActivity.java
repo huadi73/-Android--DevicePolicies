@@ -24,6 +24,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
@@ -36,8 +37,7 @@ public class MainActivity extends ActionBarActivity
     Button btnOpenGPS;
     Handler btnGpsStatusHandler;
 
-    Button btnUninstall;
-    EditText txtPwd;
+    TextView textCameraStatus;
 
     private CheckBoxPreference mDisableCameraCheckbox;
     DevicePolicyManager mDPM;
@@ -67,6 +67,16 @@ public class MainActivity extends ActionBarActivity
 //            startService(new Intent(MainActivity.this, WifiDetectService.class));
         }
 
+        textCameraStatus = (TextView)findViewById(R.id.textCameraStatus);
+        if (isMyServiceRunning(WifiDetectService.class))
+        {
+            SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
+            boolean isCameraDisable = sharedPreferences.getBoolean("isCameraDisable", false);
+            if(isCameraDisable)
+                textCameraStatus.setText("您位於限制區域內，無法使用相機功能");
+            else
+                textCameraStatus.setText("您已經可以開啟相機");
+        }
 
         btnOpenGPS = (Button) findViewById(R.id.btnOpenGPS);
         btnOpenGPS.setOnClickListener(new View.OnClickListener()
@@ -104,11 +114,21 @@ public class MainActivity extends ActionBarActivity
                         {
                             if(isMyServiceRunning(WifiDetectService.class))
                             {
-                                btnOpenGPS.setEnabled(false);
+                                SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
+                                boolean isCameraDisable = sharedPreferences.getBoolean("isCameraDisable", false);
+                                if(isCameraDisable)
+                                    textCameraStatus.setText("您位於限制區域內，無法使用相機功能");
+                                else
+                                    textCameraStatus.setText("您已經可以開啟相機");
+
+//                                btnOpenGPS.setEnabled(false);
                                 btnGpsStatusHandler.postDelayed(this, 200);
                             }
                             else
-                                btnOpenGPS.setEnabled(true);
+                            {
+//                                btnOpenGPS.setEnabled(true);
+                                textCameraStatus.setText("");
+                            }
                         }
                     };
                     btnGpsStatusHandler.postDelayed(r, 200);

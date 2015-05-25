@@ -20,7 +20,6 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -172,12 +171,15 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
     {
         mDPM.setCameraDisabled(mDeviceAdminSample, isToDisable);
 
-        if (!isToDisable && (cameraCurrentStatus != isToDisable))
-            Toast.makeText(WifiDetectService.this, "已可以開啟相機", Toast.LENGTH_LONG).show();
-        else if (isToDisable && (cameraCurrentStatus != isToDisable))
-            Toast.makeText(WifiDetectService.this, "相機功能已關閉", Toast.LENGTH_LONG).show();
+//        if (!isToDisable && (cameraCurrentStatus != isToDisable))
+//            Toast.makeText(WifiDetectService.this, "已可以開啟相機", Toast.LENGTH_LONG).show();
+//        else if (isToDisable && (cameraCurrentStatus != isToDisable))
+//            Toast.makeText(WifiDetectService.this, "相機功能已關閉", Toast.LENGTH_LONG).show();
 
         cameraCurrentStatus = isToDisable;
+        SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
+        sharedPreferences.edit().putBoolean("isCameraDisable", isToDisable).commit();
+
         Log.d(TAG, "Camera Disabled = " + isToDisable);
     }
 
