@@ -30,6 +30,7 @@
                 "SSID": "microsoft"
             }
         ],
-        "Password" : "a1234"
+        "Password" : "a1234",
+        "CameraEnableTime" : "30"
     }
 }

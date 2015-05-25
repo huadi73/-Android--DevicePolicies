@@ -13,6 +13,7 @@ import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.Handler;
 import android.preference.CheckBoxPreference;
 import android.provider.Settings;
 import android.support.v7.app.ActionBarActivity;
@@ -33,6 +34,8 @@ public class MainActivity extends ActionBarActivity
     public static final int REQUEST_GPS = 1002;
 
     Button btnOpenGPS;
+    Handler btnGpsStatusHandler;
+
     Button btnUninstall;
     EditText txtPwd;
 
@@ -92,13 +95,28 @@ public class MainActivity extends ActionBarActivity
                     Intent intent = new Intent(MainActivity.this, WifiDetectService.class);
                     intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, mDeviceAdminSample);
                     startService(intent);
+
+                    btnGpsStatusHandler = new Handler();
+                    Runnable r = new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            if(isMyServiceRunning(WifiDetectService.class))
+                            {
+                                btnOpenGPS.setEnabled(false);
+                                btnGpsStatusHandler.postDelayed(this, 200);
+                            }
+                            else
+                                btnOpenGPS.setEnabled(true);
+                        }
+                    };
+                    btnGpsStatusHandler.postDelayed(r, 200);
                 }
                 else
                     Log.d(TAG, "service is running");
-
             }
         });
-
     }
 
     @Override

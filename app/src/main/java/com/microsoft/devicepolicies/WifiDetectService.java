@@ -18,7 +18,6 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
@@ -55,6 +54,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
     boolean isEntryCompanyLocation = false;
     boolean isConnectCompanyWifi = false;
     boolean cameraCurrentStatus = true;
+    int cameraEnableTime = 0; //seconds
 
     DevicePolicyManager mDPM;
     ComponentName mDeviceAdminSample;
@@ -67,7 +67,6 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
     private LocationRequest mLocationRequest;
     private Location mCurrentLocation;
 
-    Handler gpsOnOffStatusHandler;
 
     @Override
     public void onCreate()
@@ -86,20 +85,6 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                 .addOnConnectionFailedListener(this)
                 .build();
 
-//        gpsOnOffStatusHandler = new Handler();
-//        Runnable r = new Runnable()
-//        {
-//            @Override
-//            public void run()
-//            {
-//                //check device gps enable or not
-//                LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-//                if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER))
-//                    SetCameraDisable(true);
-//                gpsOnOffStatusHandler.postDelayed(this, 1000);
-//            }
-//        };
-//        gpsOnOffStatusHandler.postDelayed(r, 1000);
     }
 
     @Override
@@ -138,7 +123,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
             SetCameraDisable(true);
         }
 
-        new CountDownTimer(60 * 1000, 1000)
+        new CountDownTimer(cameraEnableTime * 1000, 1000)
         {
             public void onTick(long millisUntilFinished)
             {
@@ -187,9 +172,9 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
     {
         mDPM.setCameraDisabled(mDeviceAdminSample, isToDisable);
 
-        if(!isToDisable && (cameraCurrentStatus != isToDisable))
+        if (!isToDisable && (cameraCurrentStatus != isToDisable))
             Toast.makeText(WifiDetectService.this, "已可以開啟相機", Toast.LENGTH_LONG).show();
-        else if(isToDisable && (cameraCurrentStatus != isToDisable))
+        else if (isToDisable && (cameraCurrentStatus != isToDisable))
             Toast.makeText(WifiDetectService.this, "相機功能已關閉", Toast.LENGTH_LONG).show();
 
         cameraCurrentStatus = isToDisable;
@@ -370,6 +355,8 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                     isEntryCompanyLocation = true;
             }
             SetCameraDisable(isEntryCompanyLocation);
+
+            mGoogleApiClient.disconnect();
         }
 
     }
@@ -409,6 +396,8 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
             JSONArray location = settings.getJSONArray("Location");
             JSONArray wifi = settings.getJSONArray("Wifi");
             String password = settings.getString("Password");
+            String cameraEnableTimeString = settings.getString("CameraEnableTime");
+            cameraEnableTime = Integer.parseInt(cameraEnableTimeString);
 
             for (int i = 0; i < location.length(); i++)
             {
