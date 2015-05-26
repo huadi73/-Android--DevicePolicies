@@ -208,7 +208,7 @@ public class MainActivity extends ActionBarActivity
                             {
                                 Log.d(TAG, "uninstall");
                                 mDPM.removeActiveAdmin(mDeviceAdminSample);
-                                stopService(new Intent(MainActivity.this, WifiDetectService.class));
+//                                stopService(new Intent(MainActivity.this, WifiDetectService.class));
 
                                 new CountDownTimer(500, 100)
                                 {
