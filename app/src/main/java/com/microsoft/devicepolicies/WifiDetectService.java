@@ -53,7 +53,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
     boolean isEntryCompanyLocation = false;
     boolean isConnectCompanyWifi = false;
     boolean cameraCurrentStatus = true;
-    int cameraEnableTime = 0; //seconds
+    long cameraEnableTime = 0; //seconds
 
     DevicePolicyManager mDPM;
     ComponentName mDeviceAdminSample;
@@ -122,6 +122,8 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
             SetCameraDisable(true);
         }
 
+        final SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
+
         new CountDownTimer(cameraEnableTime * 1000, 1000)
         {
             public void onTick(long millisUntilFinished)
@@ -129,11 +131,14 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                 LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
                 if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER))
                     SetCameraDisable(true);
+                sharedPreferences.edit().putLong("timerNow", millisUntilFinished).commit();
+                Log.d(TAG, "" + millisUntilFinished);
             }
 
             public void onFinish()
             {
                 Log.d(TAG, "Timer finish");
+                sharedPreferences.edit().putLong("timerNow", 0).commit();
                 WifiDetectService.this.stopSelf();
             }
         }.start();
@@ -394,12 +399,21 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
 
         try
         {
+            SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
+
             JSONObject settings = new JSONObject(myStream).getJSONObject("Settings");
             JSONArray location = settings.getJSONArray("Location");
             JSONArray wifi = settings.getJSONArray("Wifi");
             String password = settings.getString("Password");
             String cameraEnableTimeString = settings.getString("CameraEnableTime");
-            cameraEnableTime = Integer.parseInt(cameraEnableTimeString);
+
+            if(sharedPreferences.getLong("timerNow", 0) <= 0)
+                cameraEnableTime = Long.parseLong(cameraEnableTimeString);
+            else
+                cameraEnableTime = (long)((float)sharedPreferences.getLong("timerNow", 0) / 1000f);
+
+            Log.d(TAG, "timerNow: " + sharedPreferences.getLong("timerNow", 0));
+            Log.d(TAG, "cameraEnableTime: " + cameraEnableTime);
 
             for (int i = 0; i < location.length(); i++)
             {
@@ -413,7 +427,6 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
             for (int i = 0; i < wifi.length(); i++)
                 companyWifiNames.add(wifi.getJSONObject(i).getString("SSID").toLowerCase());
 
-            SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
             sharedPreferences.edit().putString("pwd", password).commit();
         }
         catch (JSONException e)
