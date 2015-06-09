@@ -4,13 +4,18 @@ import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
 import android.app.admin.DevicePolicyManager;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.res.AssetManager;
 import android.location.LocationManager;
 import android.net.Uri;
+import android.net.wifi.ScanResult;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -26,6 +31,16 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class MainActivity extends ActionBarActivity
@@ -43,11 +58,17 @@ public class MainActivity extends ActionBarActivity
     DevicePolicyManager mDPM;
     ComponentName mDeviceAdminSample;
 
+    List<String> companyWifiNames = new ArrayList<String>();
+    WifiManager wifi;
+    List<ScanResult> results;
+
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        GetSettings();
 
         mDPM = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
         mDeviceAdminSample = new ComponentName(this, MyDeviceAdminReceiver.class);
@@ -77,6 +98,22 @@ public class MainActivity extends ActionBarActivity
             else
                 textCameraStatus.setText("您已經可以開啟相機");
         }
+
+        wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        if (wifi.isWifiEnabled() == false)
+        {
+            wifi.setWifiEnabled(true);
+        }
+
+        registerReceiver(new BroadcastReceiver()
+        {
+            @Override
+            public void onReceive(Context c, Intent intent)
+            {
+                results = wifi.getScanResults();
+            }
+        }, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+
 
         btnOpenGPS = (Button) findViewById(R.id.btnOpenGPS);
         btnOpenGPS.setOnClickListener(new View.OnClickListener()
@@ -135,6 +172,23 @@ public class MainActivity extends ActionBarActivity
                 }
                 else
                     Log.d(TAG, "service is running");
+
+                wifi.startScan();
+                try
+                {
+                    for (String ssid : companyWifiNames)
+                        for(ScanResult result : results)
+                        {
+                            Log.d(TAG,result.SSID.toLowerCase() + ", " + ssid);
+                            if(result.SSID.toLowerCase().equals(ssid))
+                            {
+                                mDPM.setCameraDisabled(mDeviceAdminSample, true);
+                            }
+                        }
+                }
+                catch (Exception e)
+                { }
+
             }
         });
     }
@@ -250,5 +304,50 @@ public class MainActivity extends ActionBarActivity
             }
         }
         return false;
+    }
+
+    private void GetSettings()
+    {
+        AssetManager assetManager = getAssets();
+        InputStream inputStream = null;
+        String myStream;
+        try
+        {
+            // 指定/assets/MyAssets.txt
+            inputStream = assetManager.open("Settings.txt");
+
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            byte[] bytes = new byte[4096];
+
+            int len;
+            while ((len = inputStream.read(bytes)) > 0)
+            {
+                byteArrayOutputStream.write(bytes, 0, len);
+            }
+            myStream = new String(byteArrayOutputStream.toByteArray(), "UTF8");
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+            myStream = e.toString();
+        }
+
+        try
+        {
+            JSONObject settings = new JSONObject(myStream).getJSONObject("Settings");
+            JSONArray wifi = settings.getJSONArray("Wifi");
+            String password = settings.getString("Password");
+
+            for (int i = 0; i < wifi.length(); i++)
+                companyWifiNames.add(wifi.getJSONObject(i).getString("SSID").toLowerCase());
+
+            SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
+            sharedPreferences.edit().putString("pwd", password).commit();
+        }
+        catch (JSONException e)
+        {
+            e.printStackTrace();
+        }
+
     }
 }

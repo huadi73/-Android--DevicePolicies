@@ -208,7 +208,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                                 InitSettings();
                                 isConnectCompanyWifi = false;
                                 for (String wifiName : companyWifiNames)
-                                    if (wifiInfo.getSSID().equals("\"" + wifiName + "\""))
+                                    if (wifiInfo.getSSID().toLowerCase().equals("\"" + wifiName + "\""))
                                     {
                                         isConnectCompanyWifi = true;
                                     }
@@ -237,7 +237,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                                                 if (!isEntryCompanyLocation)
                                                 {
                                                     for (String wifiName : companyWifiNames)
-                                                        if (wifiInfo.getSSID().equals("\"" + wifiName + "\""))
+                                                        if (wifiInfo.getSSID().toLowerCase().equals("\"" + wifiName + "\""))
                                                         {
                                                             isConnectCompanyWifi = true;
                                                         }
@@ -411,7 +411,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
             }
 
             for (int i = 0; i < wifi.length(); i++)
-                companyWifiNames.add(wifi.getJSONObject(i).getString("SSID"));
+                companyWifiNames.add(wifi.getJSONObject(i).getString("SSID").toLowerCase());
 
             SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
             sharedPreferences.edit().putString("pwd", password).commit();
