@@ -50,8 +50,9 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
     HashMap<LatLng, Float> companyLocations = new HashMap<LatLng, Float>();
     List<String> companyWifiNames = new ArrayList<String>();
 
-    boolean isEntryCompanyLocation = false;
-    boolean isConnectCompanyWifi = false;
+    boolean isEntryCompanyLocation = true;
+    boolean isConnectCompanyWifi = true;
+    boolean isScanCompanyWifi = true;
     boolean cameraCurrentStatus = true;
     long cameraEnableTime = 0; //seconds
 
@@ -84,6 +85,9 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                 .addOnConnectionFailedListener(this)
                 .build();
 
+        Intent intent = new Intent();
+        isScanCompanyWifi = intent.getBooleanExtra("IsScanCompanyWifi", true);
+        Log.d(TAG, "isScanCompanyWifi " + isScanCompanyWifi);
     }
 
     @Override
@@ -116,9 +120,10 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
         {
             // Already is a device administrator, can do security operations now.
             Log.d(TAG, "Admin Active");
-            IntentFilter filter = new IntentFilter();
-            filter.addAction(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION);
-            registerReceiver(receiver, filter);
+            //is connect company wifi
+//            IntentFilter filter = new IntentFilter();
+//            filter.addAction(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION);
+//            registerReceiver(receiver, filter);
             SetCameraDisable(true);
         }
 
@@ -347,9 +352,9 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
     {
         mCurrentLocation = location;
         //Toast.makeText(getApplicationContext(), String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()), Toast.LENGTH_SHORT).show();
-        Log.d(TAG, "Location Changed" + String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()));
+        Log.d(TAG, "Location Changed " + String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()));
 
-        if (!isConnectCompanyWifi)
+        if (!isConnectCompanyWifi && !isScanCompanyWifi)
         {
             InitSettings();
             isEntryCompanyLocation = false;
@@ -412,8 +417,8 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
             else
                 cameraEnableTime = (long)((float)sharedPreferences.getLong("timerNow", 0) / 1000f);
 
-            Log.d(TAG, "timerNow: " + sharedPreferences.getLong("timerNow", 0));
-            Log.d(TAG, "cameraEnableTime: " + cameraEnableTime);
+//            Log.d(TAG, "timerNow: " + sharedPreferences.getLong("timerNow", 0));
+//            Log.d(TAG, "cameraEnableTime: " + cameraEnableTime);
 
             for (int i = 0; i < location.length(); i++)
             {

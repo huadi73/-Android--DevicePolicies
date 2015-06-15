@@ -24,7 +24,7 @@
         ],
         "Wifi": [
             {
-                "SSID": "Linkg"
+                "SSID": "2h1f"
             },
             {
                 "SSID": "hiwin"

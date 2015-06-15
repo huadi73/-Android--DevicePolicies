@@ -61,6 +61,7 @@ public class MainActivity extends ActionBarActivity
     List<String> companyWifiNames = new ArrayList<String>();
     WifiManager wifi;
     List<ScanResult> results;
+    boolean isScanCompanyWifi = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -139,8 +140,26 @@ public class MainActivity extends ActionBarActivity
                 }
                 else if (!isMyServiceRunning(WifiDetectService.class))
                 {
+                    wifi.startScan();
+                    try
+                    {
+                        for (String ssid : companyWifiNames)
+                            for(ScanResult result : results)
+                            {
+                                Log.d(TAG,result.SSID.toLowerCase() + ", " + ssid);
+                                if(result.SSID.toLowerCase().equals(ssid))
+                                {
+                                    mDPM.setCameraDisabled(mDeviceAdminSample, true);
+                                    isScanCompanyWifi = true;
+                                }
+                            }
+                    }
+                    catch (Exception e)
+                    { }
+
                     Intent intent = new Intent(MainActivity.this, WifiDetectService.class);
                     intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, mDeviceAdminSample);
+                    intent.putExtra("IsScanCompanyWifi", isScanCompanyWifi);
                     startService(intent);
 
                     btnGpsStatusHandler = new Handler();
@@ -172,22 +191,6 @@ public class MainActivity extends ActionBarActivity
                 }
                 else
                     Log.d(TAG, "service is running");
-
-                wifi.startScan();
-                try
-                {
-                    for (String ssid : companyWifiNames)
-                        for(ScanResult result : results)
-                        {
-                            Log.d(TAG,result.SSID.toLowerCase() + ", " + ssid);
-                            if(result.SSID.toLowerCase().equals(ssid))
-                            {
-                                mDPM.setCameraDisabled(mDeviceAdminSample, true);
-                            }
-                        }
-                }
-                catch (Exception e)
-                { }
 
             }
         });
