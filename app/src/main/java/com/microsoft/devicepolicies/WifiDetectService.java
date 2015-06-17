@@ -85,9 +85,9 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                 .addOnConnectionFailedListener(this)
                 .build();
 
-        Intent intent = new Intent();
-        isScanCompanyWifi = intent.getBooleanExtra("IsScanCompanyWifi", true);
-        Log.d(TAG, "isScanCompanyWifi " + isScanCompanyWifi);
+        SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
+        isScanCompanyWifi = sharedPreferences.getBoolean("isScanCompanyWifi", true);
+        Log.d(TAG, "isScanCompanyWifi : " + isScanCompanyWifi);
     }
 
     @Override
@@ -124,7 +124,10 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
 //            IntentFilter filter = new IntentFilter();
 //            filter.addAction(WifiManager.SUPPLICANT_STATE_CHANGED_ACTION);
 //            registerReceiver(receiver, filter);
-            SetCameraDisable(true);
+            if(isScanCompanyWifi)
+                SetCameraDisable(true);
+            else
+                SetCameraDisable(false);
         }
 
         final SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
@@ -137,7 +140,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
                 if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER))
                     SetCameraDisable(true);
                 sharedPreferences.edit().putLong("timerNow", millisUntilFinished).commit();
-                Log.d(TAG, "" + millisUntilFinished);
+//                Log.d(TAG, "" + millisUntilFinished);
             }
 
             public void onFinish()

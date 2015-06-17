@@ -141,6 +141,11 @@ public class MainActivity extends ActionBarActivity
                 else if (!isMyServiceRunning(WifiDetectService.class))
                 {
                     wifi.startScan();
+                    GetSettings();
+
+                    SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
+                    sharedPreferences.edit().putBoolean("isScanCompanyWifi", false).commit();
+
                     try
                     {
                         for (String ssid : companyWifiNames)
@@ -150,7 +155,7 @@ public class MainActivity extends ActionBarActivity
                                 if(result.SSID.toLowerCase().equals(ssid))
                                 {
                                     mDPM.setCameraDisabled(mDeviceAdminSample, true);
-                                    isScanCompanyWifi = true;
+                                    sharedPreferences.edit().putBoolean("isScanCompanyWifi", true).commit();
                                 }
                             }
                     }
