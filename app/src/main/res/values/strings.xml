@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">DevicePolicies</string>
+    <string name="app_name">HiwinCameraController</string>
 
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Uninstall</string>

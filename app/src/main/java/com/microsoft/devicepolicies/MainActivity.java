@@ -61,7 +61,7 @@ public class MainActivity extends ActionBarActivity
     List<String> companyWifiNames = new ArrayList<String>();
     WifiManager wifi;
     List<ScanResult> results;
-    boolean isScanCompanyWifi = false;
+    String showText = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -79,7 +79,7 @@ public class MainActivity extends ActionBarActivity
             // try to become active – must happen here in this activity, to get result
             Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
             intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, mDeviceAdminSample);
-            intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "1234856");
+            intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "");
             startActivityForResult(intent, REQUEST_ENABLE);
         }
         else
@@ -151,8 +151,8 @@ public class MainActivity extends ActionBarActivity
                         for (String ssid : companyWifiNames)
                             for(ScanResult result : results)
                             {
-                                Log.d(TAG,result.SSID.toLowerCase() + ", " + ssid);
-                                if(result.SSID.toLowerCase().equals(ssid))
+                                Log.d(TAG,result.SSID.toLowerCase() + ", " + ssid.toLowerCase());
+                                if(result.SSID.toLowerCase().equals(ssid.toLowerCase()))
                                 {
                                     mDPM.setCameraDisabled(mDeviceAdminSample, true);
                                     sharedPreferences.edit().putBoolean("isScanCompanyWifi", true).commit();
@@ -164,7 +164,6 @@ public class MainActivity extends ActionBarActivity
 
                     Intent intent = new Intent(MainActivity.this, WifiDetectService.class);
                     intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, mDeviceAdminSample);
-                    intent.putExtra("IsScanCompanyWifi", isScanCompanyWifi);
                     startService(intent);
 
                     btnGpsStatusHandler = new Handler();
@@ -178,9 +177,15 @@ public class MainActivity extends ActionBarActivity
                                 SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
                                 boolean isCameraDisable = sharedPreferences.getBoolean("isCameraDisable", false);
                                 if(isCameraDisable)
-                                    textCameraStatus.setText("您位於限制區域內，無法使用相機功能");
+                                {
+                                    showText = "您位於限制區域內，無法使用相機功能";
+                                    textCameraStatus.setText(showText);
+                                }
                                 else
-                                    textCameraStatus.setText("您已經可以開啟相機");
+                                {
+                                    showText = "您已經可以開啟相機";
+                                    textCameraStatus.setText(showText);
+                                }
 
 //                                btnOpenGPS.setEnabled(false);
                                 btnGpsStatusHandler.postDelayed(this, 200);
@@ -192,6 +197,14 @@ public class MainActivity extends ActionBarActivity
                             }
                         }
                     };
+
+                    Intent startMain = new Intent(Intent.ACTION_MAIN);
+                    startMain.addCategory(Intent.CATEGORY_HOME);
+                    startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(startMain);
+
+                    Toast.makeText(MainActivity.this, showText, Toast.LENGTH_SHORT).show();
+
                     btnGpsStatusHandler.postDelayed(r, 200);
                 }
                 else
@@ -223,7 +236,7 @@ public class MainActivity extends ActionBarActivity
                     //Canceled or failed.
                     Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
                     intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, mDeviceAdminSample);
-                    intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "1234856");
+                    intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "");
                     startActivityForResult(intent, REQUEST_ENABLE);
                 }
                 break;

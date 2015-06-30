@@ -163,7 +163,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
 
         SetCameraDisable(true);
         mGoogleApiClient.disconnect();
-        unregisterReceiver(receiver);
+        //unregisterReceiver(receiver);
 
         //if camera is running, the admin policy cannot stop camera.
         //So, min apps (just like click Home button) that policy will stop camera run

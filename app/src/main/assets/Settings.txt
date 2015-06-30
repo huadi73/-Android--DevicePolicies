@@ -30,10 +30,10 @@
                 "SSID": "hiwin"
             },
             {
-                "SSID": "microsoft"
+                "SSID": "11f"
             }
         ],
-        "Password" : "a1234",
+        "Password" : "76907855",
         "CameraEnableTime" : "30"
     }
 }
