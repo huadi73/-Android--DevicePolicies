@@ -30,7 +30,7 @@
                 "SSID": "hiwin"
             },
             {
-                "SSID": "11f"
+                "SSID": "11"
             }
         ],
         "Password" : "76907855",

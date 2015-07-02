@@ -152,8 +152,9 @@ public class MainActivity extends ActionBarActivity
                             for(ScanResult result : results)
                             {
                                 Log.d(TAG,result.SSID.toLowerCase() + ", " + ssid.toLowerCase());
-                                if(result.SSID.toLowerCase().equals(ssid.toLowerCase()))
+                                if(result.SSID.toLowerCase().contains(ssid.toLowerCase()))
                                 {
+                                    Log.d(TAG,"Mach SSID, " + result.SSID.toLowerCase() + ", " + ssid.toLowerCase());
                                     mDPM.setCameraDisabled(mDeviceAdminSample, true);
                                     sharedPreferences.edit().putBoolean("isScanCompanyWifi", true).commit();
                                 }
@@ -194,9 +195,11 @@ public class MainActivity extends ActionBarActivity
                             {
 //                                btnOpenGPS.setEnabled(true);
                                 textCameraStatus.setText("");
+                                showText = "";
                             }
                         }
                     };
+                    btnGpsStatusHandler.postDelayed(r, 200);
 
                     Intent startMain = new Intent(Intent.ACTION_MAIN);
                     startMain.addCategory(Intent.CATEGORY_HOME);
@@ -204,8 +207,6 @@ public class MainActivity extends ActionBarActivity
                     startActivity(startMain);
 
                     Toast.makeText(MainActivity.this, showText, Toast.LENGTH_SHORT).show();
-
-                    btnGpsStatusHandler.postDelayed(r, 200);
                 }
                 else
                     Log.d(TAG, "service is running");
