@@ -100,22 +100,6 @@ public class MainActivity extends ActionBarActivity
                 textCameraStatus.setText("您已經可以開啟相機");
         }
 
-        wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        if (wifi.isWifiEnabled() == false)
-        {
-            wifi.setWifiEnabled(true);
-        }
-
-        registerReceiver(new BroadcastReceiver()
-        {
-            @Override
-            public void onReceive(Context c, Intent intent)
-            {
-                results = wifi.getScanResults();
-            }
-        }, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
-
-
         btnOpenGPS = (Button) findViewById(R.id.btnOpenGPS);
         btnOpenGPS.setOnClickListener(new View.OnClickListener()
         {
@@ -140,73 +124,15 @@ public class MainActivity extends ActionBarActivity
                 }
                 else if (!isMyServiceRunning(WifiDetectService.class))
                 {
-                    wifi.startScan();
-                    GetSettings();
-
-                    SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
-                    sharedPreferences.edit().putBoolean("isScanCompanyWifi", false).commit();
-
-                    try
+                    wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+                    if (wifi.isWifiEnabled() == false)
                     {
-                        for (String ssid : companyWifiNames)
-                            for(ScanResult result : results)
-                            {
-                                Log.d(TAG,result.SSID.toLowerCase() + ", " + ssid.toLowerCase());
-                                if(result.SSID.toLowerCase().contains(ssid.toLowerCase()))
-                                {
-                                    Log.d(TAG,"Mach SSID, " + result.SSID.toLowerCase() + ", " + ssid.toLowerCase());
-                                    mDPM.setCameraDisabled(mDeviceAdminSample, true);
-                                    sharedPreferences.edit().putBoolean("isScanCompanyWifi", true).commit();
-                                }
-                            }
+                        wifi.setWifiEnabled(true);
                     }
-                    catch (Exception e)
-                    { }
 
-                    Intent intent = new Intent(MainActivity.this, WifiDetectService.class);
-                    intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, mDeviceAdminSample);
-                    startService(intent);
+                    registerReceiver(WifiScanReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+                    wifi.startScan();
 
-                    btnGpsStatusHandler = new Handler();
-                    Runnable r = new Runnable()
-                    {
-                        @Override
-                        public void run()
-                        {
-                            if(isMyServiceRunning(WifiDetectService.class))
-                            {
-                                SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
-                                boolean isCameraDisable = sharedPreferences.getBoolean("isCameraDisable", false);
-                                if(isCameraDisable)
-                                {
-                                    showText = "您位於限制區域內，無法使用相機功能";
-                                    textCameraStatus.setText(showText);
-                                }
-                                else
-                                {
-                                    showText = "您已經可以開啟相機";
-                                    textCameraStatus.setText(showText);
-                                }
-
-//                                btnOpenGPS.setEnabled(false);
-                                btnGpsStatusHandler.postDelayed(this, 200);
-                            }
-                            else
-                            {
-//                                btnOpenGPS.setEnabled(true);
-                                textCameraStatus.setText("");
-                                showText = "";
-                            }
-                        }
-                    };
-                    btnGpsStatusHandler.postDelayed(r, 200);
-
-                    Intent startMain = new Intent(Intent.ACTION_MAIN);
-                    startMain.addCategory(Intent.CATEGORY_HOME);
-                    startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(startMain);
-
-                    Toast.makeText(MainActivity.this, showText, Toast.LENGTH_SHORT).show();
                 }
                 else
                     Log.d(TAG, "service is running");
@@ -214,6 +140,89 @@ public class MainActivity extends ActionBarActivity
             }
         });
     }
+
+    private BroadcastReceiver WifiScanReceiver = new BroadcastReceiver()
+    {
+        @Override
+        public void onReceive(Context context, Intent intent)
+        {
+            results = wifi.getScanResults();
+            if (wifi.isWifiEnabled())
+            {
+                wifi.setWifiEnabled(false);
+            }
+
+            GetSettings();
+
+            SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
+            sharedPreferences.edit().putBoolean("isScanCompanyWifi", false).commit();
+
+            try
+            {
+                for (String ssid : companyWifiNames)
+                    for (ScanResult result : results)
+                    {
+                        //Log.d(TAG, result.SSID.toLowerCase() + ", " + ssid.toLowerCase());
+                        if (result.SSID.toLowerCase().contains(ssid.toLowerCase()))
+                        {
+                            Log.d(TAG, "Mach SSID, " + result.SSID.toLowerCase() + ", " + ssid.toLowerCase());
+                            mDPM.setCameraDisabled(mDeviceAdminSample, true);
+                            sharedPreferences.edit().putBoolean("isScanCompanyWifi", true).commit();
+                        }
+                    }
+            }
+            catch (Exception e)
+            {
+            }
+
+            Intent wifiServiceIntent = new Intent(MainActivity.this, WifiDetectService.class);
+            wifiServiceIntent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, mDeviceAdminSample);
+            startService(wifiServiceIntent);
+
+            btnGpsStatusHandler = new Handler();
+            Runnable r = new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    if (isMyServiceRunning(WifiDetectService.class))
+                    {
+                        SharedPreferences sharedPreferences = getSharedPreferences("Preference", 0);
+                        boolean isCameraDisable = sharedPreferences.getBoolean("isCameraDisable", false);
+                        if (isCameraDisable)
+                        {
+                            showText = "您位於限制區域內，無法使用相機功能";
+                            textCameraStatus.setText(showText);
+                        }
+                        else
+                        {
+                            showText = "您已經可以開啟相機";
+                            textCameraStatus.setText(showText);
+                        }
+
+//                                btnOpenGPS.setEnabled(false);
+                        btnGpsStatusHandler.postDelayed(this, 200);
+                    }
+                    else
+                    {
+//                                btnOpenGPS.setEnabled(true);
+                        textCameraStatus.setText("");
+                        showText = "";
+                    }
+                }
+            };
+            btnGpsStatusHandler.postDelayed(r, 200);
+
+            Intent startMain = new Intent(Intent.ACTION_MAIN);
+            startMain.addCategory(Intent.CATEGORY_HOME);
+            startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(startMain);
+
+            Toast.makeText(MainActivity.this, showText, Toast.LENGTH_SHORT).show();
+
+            MainActivity.this.unregisterReceiver(this);
+        }
+    };
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data)
