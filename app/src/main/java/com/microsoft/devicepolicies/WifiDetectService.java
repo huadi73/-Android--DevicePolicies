@@ -357,7 +357,7 @@ public class WifiDetectService extends Service implements GoogleApiClient.Connec
         //Toast.makeText(getApplicationContext(), String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()), Toast.LENGTH_SHORT).show();
         Log.d(TAG, "Location Changed " + String.valueOf(mCurrentLocation.getLatitude()) + ", " + String.valueOf(mCurrentLocation.getLongitude()));
 
-        if (!isConnectCompanyWifi && !isScanCompanyWifi)
+        if (!isScanCompanyWifi)
         {
             InitSettings();
             isEntryCompanyLocation = false;

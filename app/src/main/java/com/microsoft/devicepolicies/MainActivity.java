@@ -60,6 +60,7 @@ public class MainActivity extends ActionBarActivity
 
     List<String> companyWifiNames = new ArrayList<String>();
     WifiManager wifi;
+    boolean isCurrentWifiOn = false;
     List<ScanResult> results;
     String showText = "";
 
@@ -125,7 +126,9 @@ public class MainActivity extends ActionBarActivity
                 else if (!isMyServiceRunning(WifiDetectService.class))
                 {
                     wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-                    if (wifi.isWifiEnabled() == false)
+                    isCurrentWifiOn = wifi.isWifiEnabled();
+
+                    if (!isCurrentWifiOn)
                     {
                         wifi.setWifiEnabled(true);
                     }
@@ -147,7 +150,7 @@ public class MainActivity extends ActionBarActivity
         public void onReceive(Context context, Intent intent)
         {
             results = wifi.getScanResults();
-            if (wifi.isWifiEnabled())
+            if (!isCurrentWifiOn)
             {
                 wifi.setWifiEnabled(false);
             }
@@ -218,7 +221,8 @@ public class MainActivity extends ActionBarActivity
             startMain.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(startMain);
 
-            Toast.makeText(MainActivity.this, showText, Toast.LENGTH_SHORT).show();
+            if(showText.length() > 0)
+                Toast.makeText(MainActivity.this, showText, Toast.LENGTH_SHORT).show();
 
             MainActivity.this.unregisterReceiver(this);
         }
